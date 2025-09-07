@@ -1,0 +1,361 @@
+---
+title: "AI Integration Hub"
+sidebarTitle: "Introduction"
+description: "Centralized hub for managing multiple AI service integrations in Stagehand"
+---
+
+## Overview
+
+The AI Integration Hub (Marduk) is a centralized system for managing and orchestrating multiple AI services and integrations within Stagehand. It provides a unified interface for different AI providers, making it easy to switch between services or combine multiple AI capabilities.
+
+<Info>
+The hub is named after Marduk, the Babylonian god of wisdom and order, reflecting its role in bringing structure to AI service management.
+</Info>
+
+## Key Features
+
+<CardGroup cols={2}>
+<Card title="Unified Interface" icon="puzzle-piece">
+Standard interface for all AI integrations, regardless of the underlying provider
+</Card>
+
+<Card title="Registry System" icon="list">
+Dynamic registration and discovery of available AI integrations
+</Card>
+
+<Card title="Health Monitoring" icon="heart-pulse">
+Built-in health checks and performance metrics for all integrations
+</Card>
+
+<Card title="Batch Operations" icon="layer-group">
+Execute multiple AI operations across different services simultaneously
+</Card>
+
+<Card title="Error Handling" icon="shield-exclamation">
+Robust error handling with retry policies and graceful degradation
+</Card>
+
+<Card title="Configuration Management" icon="gear">
+Centralized configuration for all AI services and their credentials
+</Card>
+</CardGroup>
+
+## Core Concepts
+
+### Integration Registry
+A centralized registry for discovering and managing AI integrations:
+
+```typescript
+import { MardukHub, OpenAIIntegration } from '@browserbasehq/stagehand';
+
+const hub = new MardukHub();
+
+// Register an integration
+await hub.register(new OpenAIIntegration());
+
+// List all registered integrations
+const integrations = hub.registry.list();
+```
+
+### AI Integration Interface
+All integrations implement a standard interface:
+
+```typescript
+interface AIIntegration {
+  name: string;
+  version: string;
+  description: string;
+  provider: string;
+  capabilities: IntegrationCapability[];
+  
+  initialize(config: Record<string, unknown>): Promise<void>;
+  call(method: string, params: unknown[]): Promise<unknown>;
+  cleanup(): Promise<void>;
+  isHealthy(): Promise<boolean>;
+}
+```
+
+### Integration Capabilities
+Define what each integration can do:
+
+```typescript
+enum IntegrationCapability {
+  TEXT_GENERATION = 'text-generation',
+  IMAGE_GENERATION = 'image-generation',
+  VISION = 'vision',
+  EMBEDDINGS = 'embeddings',
+  SEARCH = 'search',
+  DATABASE = 'database',
+  WORKFLOW = 'workflow',
+  ANALYSIS = 'analysis'
+}
+```
+
+## Getting Started
+
+### Basic Setup
+
+```typescript
+import { MardukHub, OpenAIIntegration } from '@browserbasehq/stagehand';
+
+// Create and configure the hub
+const hub = new MardukHub({
+  maxConcurrentOperations: 10,
+  operationTimeout: 30000,
+  integrations: {
+    openai: {
+      enabled: true,
+      apiKey: process.env.OPENAI_API_KEY,
+    }
+  }
+});
+
+// Initialize the hub
+await hub.initialize();
+
+// Register integrations
+await hub.register(new OpenAIIntegration());
+
+// Execute operations
+const result = await hub.execute('openai', 'generateText', [
+  'Hello, how can I help you today?'
+]);
+```
+
+### With Stagehand Agents
+
+The hub can be used with Stagehand agents in experimental mode:
+
+```typescript
+import { Stagehand, MardukHub, OpenAIIntegration } from '@browserbasehq/stagehand';
+
+// Create hub
+const hub = new MardukHub();
+await hub.initialize();
+await hub.register(new OpenAIIntegration());
+
+// Create Stagehand with experimental features
+const stagehand = new Stagehand({ experimental: true });
+await stagehand.init();
+
+// Use hub with agents
+const agent = stagehand.agent({
+  provider: 'openai',
+  model: 'gpt-4-turbo-preview',
+  integrations: {
+    hub: hub // Pass the entire hub
+  }
+});
+
+await agent.execute('Generate a summary of this page and search for related content');
+```
+
+## Built-in Integrations
+
+The hub comes with several built-in integrations:
+
+### OpenAI Integration
+- **Capabilities**: Text generation, embeddings, vision
+- **Methods**: `generateText`, `createEmbedding`, `analyzeImage`
+- **Configuration**: API key, base URL, model options
+
+```typescript
+const openai = new OpenAIIntegration();
+await hub.register(openai);
+
+// Generate text
+const text = await hub.execute('openai', 'generateText', [
+  'Write a brief summary about AI',
+  { model: 'gpt-4-turbo-preview', temperature: 0.7 }
+]);
+
+// Create embeddings
+const embedding = await hub.execute('openai', 'createEmbedding', [
+  'This is a sample text for embedding'
+]);
+
+// Analyze image
+const analysis = await hub.execute('openai', 'analyzeImage', [
+  'https://example.com/image.jpg',
+  'What do you see in this image?'
+]);
+```
+
+## Advanced Features
+
+### Batch Operations
+Execute multiple operations across different integrations:
+
+```typescript
+const operations = [
+  {
+    integrationName: 'openai',
+    method: 'generateText',
+    params: ['What is AI?'],
+    id: 'text-gen-1'
+  },
+  {
+    integrationName: 'search',
+    method: 'search',
+    params: ['artificial intelligence'],
+    id: 'search-1'
+  }
+];
+
+const results = await hub.executeBatch(operations);
+console.log(`Successful: ${results.summary.successful}, Failed: ${results.summary.failed}`);
+```
+
+### Health Monitoring
+Monitor the health of all integrations:
+
+```typescript
+const health = await hub.healthCheck();
+console.log(`Overall status: ${health.overall}`);
+
+for (const [name, status] of Object.entries(health.integrations)) {
+  console.log(`${name}: ${status.status}`);
+}
+```
+
+### Metrics Collection
+Get detailed metrics about hub performance:
+
+```typescript
+const metrics = await hub.getMetrics();
+console.log(`Total calls: ${metrics.totalCalls}`);
+console.log(`Average response time: ${metrics.averageResponseTime}ms`);
+console.log(`Success rate: ${(metrics.successfulCalls / metrics.totalCalls * 100).toFixed(2)}%`);
+```
+
+## Creating Custom Integrations
+
+You can create custom integrations by implementing the `AIIntegration` interface:
+
+```typescript
+import { AIIntegration, IntegrationCapability } from '@browserbasehq/stagehand';
+
+class CustomAnalyticsIntegration implements AIIntegration {
+  name = 'custom-analytics';
+  version = '1.0.0';
+  description = 'Custom analytics integration';
+  provider = 'internal';
+  capabilities = [IntegrationCapability.ANALYSIS];
+  config = { enabled: false };
+
+  async initialize(config: Record<string, unknown>): Promise<void> {
+    // Setup your service
+  }
+
+  async call(method: string, params: unknown[]): Promise<unknown> {
+    switch (method) {
+      case 'analyze':
+        return this.analyzeData(params[0]);
+      default:
+        throw new Error(`Unknown method: ${method}`);
+    }
+  }
+
+  async cleanup(): Promise<void> {
+    // Cleanup resources
+  }
+
+  async isHealthy(): Promise<boolean> {
+    // Check service health
+    return true;
+  }
+
+  private analyzeData(data: unknown): unknown {
+    // Your analysis logic
+    return { analyzed: true, data };
+  }
+}
+
+// Register your custom integration
+await hub.register(new CustomAnalyticsIntegration());
+```
+
+## Configuration
+
+The hub supports extensive configuration options:
+
+```typescript
+const config = {
+  // Global settings
+  maxConcurrentOperations: 10,
+  operationTimeout: 30000,
+  retryPolicy: {
+    maxAttempts: 3,
+    baseDelay: 1000,
+    maxDelay: 10000,
+    backoffMultiplier: 2,
+    retryableErrors: ['TIMEOUT', 'NETWORK_ERROR', 'RATE_LIMIT']
+  },
+  
+  // Integration-specific configs
+  integrations: {
+    openai: {
+      enabled: true,
+      apiKey: process.env.OPENAI_API_KEY,
+      customConfig: {
+        model: 'gpt-4-turbo-preview',
+        temperature: 0.7
+      }
+    }
+  },
+  
+  // Monitoring
+  enableMetrics: true,
+  enableHealthChecks: true,
+  healthCheckInterval: 60000
+};
+
+const hub = new MardukHub(config);
+```
+
+## Error Handling
+
+The hub provides comprehensive error handling:
+
+```typescript
+import { IntegrationError } from '@browserbasehq/stagehand';
+
+try {
+  const result = await hub.execute('openai', 'generateText', ['Hello']);
+} catch (error) {
+  if (error instanceof IntegrationError) {
+    console.log(`Integration: ${error.integrationName}`);
+    console.log(`Method: ${error.method}`);
+    console.log(`Error: ${error.message}`);
+  }
+}
+```
+
+## Best Practices
+
+1. **Always initialize the hub** before registering integrations
+2. **Use health checks** to monitor integration status
+3. **Implement proper error handling** for all operations
+4. **Configure appropriate timeouts** for your use case
+5. **Monitor metrics** to optimize performance
+6. **Clean up resources** when shutting down the hub
+
+## Next Steps
+
+<CardGroup cols={2}>
+<Card title="Setup Guide" icon="rocket" href="/integrations/ai-hub/setup">
+Get started with installation and configuration
+</Card>
+
+<Card title="Built-in Integrations" icon="puzzle-piece" href="/integrations/ai-hub/builtin">
+Explore available built-in integrations
+</Card>
+
+<Card title="Custom Integrations" icon="code" href="/integrations/ai-hub/custom">
+Learn how to create custom integrations
+</Card>
+
+<Card title="API Reference" icon="book" href="/integrations/ai-hub/api">
+Complete API documentation
+</Card>
+</CardGroup>
