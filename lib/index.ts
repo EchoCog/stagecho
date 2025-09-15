@@ -1029,5 +1029,14 @@ export * from "../types/playwright";
 export * from "../types/stagehand";
 export * from "../types/stagehandApiErrors";
 export * from "../types/stagehandErrors";
+export * from "../types/integration";
+export * from "../types/hub";
 export * from "./llm/LLMClient";
 export { connectToMCPServer };
+// AI Integration Hub exports
+export {
+  MardukHub,
+  IntegrationRegistry as AIIntegrationRegistry,
+  IntegrationManager as AIIntegrationManager,
+  OpenAIIntegration,
+} from "./integrations";
